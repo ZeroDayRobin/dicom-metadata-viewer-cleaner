@@ -14,6 +14,14 @@ Das Programmsymbol liegt als [PNG](assets/dicom-reader.png) und [Windows-ICO](as
 
 ## Start unter Windows
 
+### Portables Windows-ZIP
+
+Auf der [Releases-Seite](https://github.com/ZeroDayRobin/dicom-metadata-viewer-cleaner/releases) die Datei `DicomMetadataViewerCleaner-Windows-x64.zip` herunterladen, **vollständig entpacken** und `DicomMetadataViewerCleaner.exe` starten. Python, Paketinstallation und Internet sind dafür nicht erforderlich. Die EXE benötigt den mitgelieferten Ordner `_internal`; sie darf nicht einzeln herauskopiert werden. Die Lizenzhinweise liegen im ZIP unter `THIRD_PARTY_LICENSES`.
+
+Das ZIP wird auf einem Windows-x64-System mit `powershell -ExecutionPolicy Bypass -File .\build-windows.ps1` aus dem Quellcode erstellt. Der Build benötigt Python 3.14 und beim ersten Installieren der Build-Abhängigkeiten Internet. Die Ausgabe liegt in `dist/`.
+
+### Start aus dem Quellcode
+
 Python 3.11 oder neuer installieren und **[start.bat](start.bat)** doppelklicken. Die Batchdatei legt beim ersten Start `.venv` an, prüft die Pakete aus `requirements.txt`, installiert fehlende Pakete und öffnet den Reader. Bei späteren Starts werden bereits passende Pakete weiterverwendet.
 
 Der Reader verarbeitet DICOM-Dateien ausschließlich lokal und benötigt zur Nutzung kein Internet. Nur die Installation fehlender Python-Pakete durch `start.bat` kann beim ersten Start Internetzugang erfordern.

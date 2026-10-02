@@ -3,6 +3,9 @@ __pycache__/
 .venv/
 .venv-linux/
 .venv-macos/
+build/
+dist/
+*.spec
 vendor/
 .pytest_cache/
 .mypy_cache/

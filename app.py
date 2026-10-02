@@ -19,7 +19,7 @@ class DicomApp(tk.Tk):
         self.title("DICOM Reader")
         self.geometry("1200x760")
         self.minsize(850, 520)
-        icon_dir = Path(__file__).resolve().parent / "assets"
+        icon_dir = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "assets"
         with Image.open(icon_dir / "dicom-reader.png") as icon:
             self.icon_image = ImageTk.PhotoImage(icon, master=self)
         self.iconphoto(True, self.icon_image)
@@ -352,6 +352,15 @@ class DicomApp(tk.Tk):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--self-check":
+        from audit import create_local_ocr
+
+        create_local_ocr()
+        app = DicomApp()
+        app.withdraw()
+        app.update_idletasks()
+        app.destroy()
+        sys.exit(0)
     app = DicomApp()
     if len(sys.argv) > 1:
         app.open_path(sys.argv[1])

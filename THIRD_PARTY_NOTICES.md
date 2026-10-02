@@ -1,6 +1,6 @@
 # Drittanbieter und Lizenzhinweise
 
-Dieses Repository enthält keine Kopien der folgenden Python-Pakete oder OCR-Modelle. `pip install -r requirements.txt` installiert sie gesondert. Die MIT-Lizenz dieses Projekts ersetzt deren jeweilige Lizenzen nicht.
+Der Quellcode dieses Repositorys enthält keine Kopien der folgenden Python-Pakete oder OCR-Modelle. `pip install -r requirements.txt` installiert sie gesondert. Das portable Windows-ZIP bündelt sie und enthält im Ordner `THIRD_PARTY_LICENSES` die Lizenztexte und Modellhinweise. Die MIT-Lizenz dieses Projekts ersetzt deren jeweilige Lizenzen nicht.
 
 | Direkte Abhängigkeit | Im Projekt verwendeter Versionsbereich | Lizenzhinweis | Quelle |
 | --- | --- | --- | --- |
@@ -11,4 +11,4 @@ Dieses Repository enthält keine Kopien der folgenden Python-Pakete oder OCR-Mod
 | RapidOCR | `==3.9.2` | Apache-2.0; gebündelte OCR-Modelle stammen aus PaddleOCR und haben eigene Zuordnungshinweise | [Projekt und Modellhinweise](https://github.com/RapidAI/RapidOCR) |
 | ONNX Runtime | Windows/Linux: `>=1.27,<2`; macOS: `==1.23.2` | MIT; enthält weitere Drittanbieterhinweise | [Projekt](https://github.com/microsoft/onnxruntime) |
 
-Die Angaben wurden anhand der lokal installierten Paketmetadaten und der Projektseiten erstellt. Transitive Abhängigkeiten sind hier nicht vollständig aufgeführt. Für eine Weitergabe von Paketen, Modellen oder ausführbaren Bündeln müssen die konkreten installierten Versionen und deren `LICENSE`-/`NOTICE`-Dateien geprüft und erforderliche Hinweise mitgegeben werden. Insbesondere enthält das hier installierte RapidOCR-3.9.2-Wheel keine separate Modell-Lizenzdatei; vor einer gebündelten Weitergabe ist die Modellzuordnung anhand der Herstellerangaben erneut zu prüfen. Beim reinen Quellcode-Upload werden diese Pakete und Modelle nicht mit veröffentlicht.
+Die Angaben wurden anhand der lokal installierten Paketmetadaten und der Projektseiten erstellt. Transitive Abhängigkeiten sind hier nicht vollständig aufgeführt. Die konkreten Versionen und Lizenzdateien des Windows-Builds stehen im ZIP. Das RapidOCR-3.9.2-Wheel enthält keine separate Modell-Lizenzdatei; die Modellzuordnung und Hashes wurden daher mit den Herstellerangaben abgeglichen und im ZIP unter `RapidOCR-MODELS.txt` festgehalten.
