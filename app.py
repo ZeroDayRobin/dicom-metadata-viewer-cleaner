@@ -79,8 +79,20 @@ class DicomApp(tk.Tk):
             action_bar, "save", "Bereinigte Kopie speichern",
             "Zeigt zuerst einen Warnhinweis und speichert danach eine neue bereinigte Kopie. "
             "Die Originaldatei bleibt erhalten. Bei ZIP-Ausgaben wird ein neues DICOMDIR erstellt; "
-            "zusätzlich entsteht ein Prüfbericht mit Metadatenhinweisen und lokaler Bildtext-Erkennung. "
-            "OCR-Treffer sind nur Hinweise; Bilddaten müssen vor Weitergabe visuell geprüft werden.",
+            "zusätzlich entsteht ein Prüfbericht mit Metadatenhinweisen. "
+            "Die optionale OCR prüft Bildpixel auf Text. Bilddaten müssen vor Weitergabe visuell geprüft werden.",
+        )
+        self.enable_ocr = tk.BooleanVar(value=False)
+        self.ocr_checkbox = ttk.Checkbutton(
+            action_bar, text="Bildtext-OCR", variable=self.enable_ocr,
+            command=self.on_ocr_toggle,
+        )
+        self.ocr_checkbox.pack(side="left", padx=(12, 0))
+        self.add_info_button(
+            action_bar, "ocr", "Bildtext-OCR",
+            "Prüft Bildpixel nach der Bereinigung lokal auf möglichen Text. "
+            "Das kann bei vielen Dateien deutlich länger dauern. Standardmäßig ist OCR ausgeschaltet; "
+            "die Metadatenprüfung läuft immer. Auch mit OCR müssen Bilder vor Weitergabe visuell geprüft werden.",
         )
         ttk.Button(action_bar, text="KI-Prompt erzeugen…", command=self.show_ai_prompt).pack(
             side="left", padx=(12, 0)
@@ -164,6 +176,16 @@ class DicomApp(tk.Tk):
         self.info_buttons[key] = button
         return button
 
+    def on_ocr_toggle(self):
+        if self.enable_ocr.get():
+            messagebox.showwarning(
+                "Bildtext-OCR aktiviert",
+                "Die lokale Bildtext-OCR kann die Bereinigung deutlich länger dauern lassen, "
+                "besonders bei vielen Bildern oder Frames. Erkannter Text wird nicht gespeichert. "
+                "Auch danach ist eine visuelle Prüfung nötig.",
+                parent=self,
+            )
+
     def open_dialog(self):
         path = filedialog.askopenfilename(
             title="DICOM-Datei oder ZIP auswählen",
@@ -207,15 +229,21 @@ class DicomApp(tk.Tk):
         if not self.entries:
             messagebox.showinfo("Cleaner", "Bitte zuerst eine DICOM-Datei oder ein ZIP öffnen.")
             return
+        ocr_note = (
+            "aktiviert; sie kann deutlich länger dauern.\n\n"
+            if self.enable_ocr.get()
+            else "deaktiviert; Bildframes werden nicht automatisch auf Text geprüft.\n\n"
+        )
         warning = (
             "Die Bereinigung verändert nur DICOM-Metadaten. Namen oder andere Merkmale "
             "können weiterhin direkt im Bild sichtbar sein. Auch unbekannte Freitexte "
             "oder besondere DICOM-Objekte müssen geprüft werden.\n\n"
             "Die Originaldatei bleibt erhalten. Es wird eine neue Kopie geschrieben und "
             "danach erneut geprüft. Bitte die Ausgabe vor Weitergabe visuell kontrollieren.\n\n"
-            "Der Prüfbericht nennt verbliebene auffällige Metadatenfelder und mögliche "
-            "Bildtexte aus einer lokalen OCR-Prüfung. Erkannte Texte werden nicht protokolliert; "
-            "nicht geprüfte Frames werden ausgewiesen.\n\n"
+            "Der Prüfbericht nennt verbliebene auffällige Metadatenfelder. "
+            "Die Bildtext-OCR ist optional und derzeit "
+            + ocr_note
+            +
             "Bei ZIP-Ausgaben wird ein neues DICOMDIR mit passenden Dateiverweisen erstellt. "
             "Dafür können leere Kennfelder neutrale Ersatzwerte erhalten.\n\n"
             "Bereinigung jetzt durchführen?"
@@ -247,6 +275,7 @@ class DicomApp(tk.Tk):
             result = clean_source(
                 source, output, self.clean_mode.get(),
                 progress=progress, audit_progress=audit_progress,
+                enable_ocr=self.enable_ocr.get(),
             )
         except Exception as exc:
             self.status.configure(text="Bereinigung fehlgeschlagen")
@@ -257,14 +286,18 @@ class DicomApp(tk.Tk):
             f"\n{result.replaced_dicomdir} altes DICOMDIR ersetzt; neues DICOMDIR erstellt.\n"
             if is_zip else ""
         )
+        ocr_result = (
+            f"{result.audit.pixel_frames_with_text} Frame(s) mit OCR-Text; "
+            if result.audit.ocr_enabled else "OCR deaktiviert; "
+        )
         messagebox.showinfo(
             "Bereinigung abgeschlossen",
             f"{result.count} Datei(en) als neue Kopie gespeichert.\n\n"
             f"Ausgabe: {result.output}\nBericht: {result.report}\n"
             f"{dicomdir_note}\n"
             f"Prüfbericht: {result.audit.metadata_files} Instanz(en) mit Metadatenhinweisen; "
-            f"{result.audit.pixel_frames_with_text} Frame(s) mit OCR-Text; "
-            f"{result.audit.pixel_frames_unchecked} Frame(s) nicht geprüft.\n\n"
+            + ocr_result
+            + f"{result.audit.pixel_frames_unchecked} Frame(s) nicht geprüft.\n\n"
             "Bitte Bilddaten vor einer Weitergabe auf sichtbare Namen und erkennbare Merkmale prüfen.",
         )
 

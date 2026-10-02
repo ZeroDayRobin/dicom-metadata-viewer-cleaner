@@ -44,6 +44,7 @@ class AuditResult:
     pixel_frames_unchecked: int = 0
     text_locations: list[tuple[int, int]] = field(default_factory=list)
     ocr_unavailable: bool = False
+    ocr_enabled: bool = False
 
 
 def _metadata_tags_to_review(ds) -> set[int]:
@@ -108,9 +109,10 @@ def create_local_ocr():
                             "Global.log_level": "warning"})
 
 
-def audit_source(source, ocr_engine_factory=create_local_ocr, progress=None) -> AuditResult:
+def audit_source(source, ocr_engine_factory=create_local_ocr, progress=None,
+                 enable_ocr: bool = False) -> AuditResult:
     """Inspect every instance; OCR at most 64 evenly spread frames per instance."""
-    result = AuditResult()
+    result = AuditResult(ocr_enabled=enable_ocr)
     entries = list_entries(source)
     engine = None
     for entry in entries:
@@ -133,6 +135,11 @@ def audit_source(source, ocr_engine_factory=create_local_ocr, progress=None) -> 
         except (TypeError, ValueError):
             total = 1
         result.pixel_frames_total += total
+        if not enable_ocr:
+            result.pixel_frames_unchecked += total
+            if progress:
+                progress(result.instances, len(entries))
+            continue
         indices = _frame_indices(total)
         result.pixel_frames_unchecked += total - len(indices)
         for index in indices:
@@ -191,6 +198,10 @@ def format_audit_report(audit: AuditResult) -> str:
         f"- Frames mit erkanntem Text: {audit.pixel_frames_with_text}",
         f"- nicht geprüft: {audit.pixel_frames_unchecked}",
     ])
+    if not audit.ocr_enabled:
+        lines.append("OCR deaktiviert; Bildframes wurden nicht automatisch auf Text geprüft.")
+        lines.append("Bilddaten vor einer Weitergabe manuell auf sichtbare Angaben prüfen.")
+        return "\n".join(lines) + "\n"
     if audit.ocr_unavailable:
         lines.append("OCR war nicht verfügbar; betroffene Bildframes wurden nicht geprüft.")
     for instance, frame in audit.text_locations[:100]:

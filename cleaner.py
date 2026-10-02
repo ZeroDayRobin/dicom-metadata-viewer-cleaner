@@ -240,7 +240,7 @@ def _verify_fileset_zip(path: Path, count: int) -> None:
 
 
 def clean_source(source: str | Path, output: str | Path, mode: str,
-                 progress=None, audit_progress=None) -> CleanResult:
+                 progress=None, audit_progress=None, enable_ocr: bool = False) -> CleanResult:
     """Write a new cleaned DICOM file or ZIP; never overwrite existing files."""
     if mode not in {"pseudonymize", "remove"}:
         raise ValueError("Unbekannter Cleaner-Modus")
@@ -308,7 +308,7 @@ def clean_source(source: str | Path, output: str | Path, mode: str,
             cleaned_count = 1
             if progress:
                 progress(1, 1)
-        audit = audit_source(temp_name, progress=audit_progress)
+        audit = audit_source(temp_name, progress=audit_progress, enable_ocr=enable_ocr)
         with tempfile.NamedTemporaryFile(dir=output.parent, suffix=".tmp", delete=False) as temp:
             temp_report = Path(temp.name)
         report_lines = [

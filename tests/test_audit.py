@@ -39,7 +39,7 @@ class AuditTests(unittest.TestCase):
                 def __call__(self, image):
                     return SimpleNamespace(txts=(), scores=())
 
-            result = audit_source(source, ocr_engine_factory=FakeOCR)
+            result = audit_source(source, ocr_engine_factory=FakeOCR, enable_ocr=True)
             self.assertEqual(result.pixel_frames_total, 3)
             self.assertEqual(result.pixel_frames_checked, 3)
             self.assertEqual(result.pixel_frames_unchecked, 0)
@@ -58,7 +58,7 @@ class AuditTests(unittest.TestCase):
                 def __call__(self, image):
                     return SimpleNamespace(txts=(), scores=())
 
-            result = audit_source(source, ocr_engine_factory=FakeOCR)
+            result = audit_source(source, ocr_engine_factory=FakeOCR, enable_ocr=True)
             self.assertEqual(result.pixel_frames_total, 65)
             self.assertEqual(result.pixel_frames_checked, 64)
             self.assertEqual(result.pixel_frames_unchecked, 1)
@@ -78,7 +78,7 @@ class AuditTests(unittest.TestCase):
                 def __call__(self, image):
                     return SimpleNamespace(txts=("Jane Doe",), scores=(0.99,))
 
-            result = audit_source(source, ocr_engine_factory=FakeOCR)
+            result = audit_source(source, ocr_engine_factory=FakeOCR, enable_ocr=True)
             report = format_audit_report(result)
             self.assertEqual(result.instances, 1)
             self.assertEqual(result.metadata_counts[0x00400007], 1)
@@ -98,7 +98,7 @@ class AuditTests(unittest.TestCase):
             def missing_engine():
                 raise ImportError("OCR not installed")
 
-            result = audit_source(source, ocr_engine_factory=missing_engine)
+            result = audit_source(source, ocr_engine_factory=missing_engine, enable_ocr=True)
             self.assertEqual(result.pixel_frames_checked, 0)
             self.assertEqual(result.pixel_frames_unchecked, 1)
             self.assertIn("nicht geprüft", format_audit_report(result))
@@ -107,7 +107,7 @@ class AuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "source.dcm"
             make_text_image(source)
-            result = audit_source(source)
+            result = audit_source(source, enable_ocr=True)
             self.assertEqual(result.pixel_frames_checked, 1)
             self.assertGreater(result.pixel_frames_with_text, 0)
             self.assertNotIn("PATIENT 12345", format_audit_report(result))
@@ -116,7 +116,7 @@ class AuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             source, output = Path(tmp) / "source.dcm", Path(tmp) / "clean.dcm"
             make_text_image(source)
-            result = clean_source(source, output, "remove")
+            result = clean_source(source, output, "remove", enable_ocr=True)
             report = result.report.read_text(encoding="utf-8")
             self.assertEqual(result.audit.pixel_frames_checked, 1)
             self.assertGreater(result.audit.pixel_frames_with_text, 0)
@@ -125,6 +125,31 @@ class AuditTests(unittest.TestCase):
                 pydicom.dcmread(output).PixelData,
                 pydicom.dcmread(source).PixelData,
             )
+
+    def test_ocr_is_disabled_by_default_but_metadata_is_still_audited(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, output = Path(tmp) / "source.dcm", Path(tmp) / "clean.dcm"
+            make_text_image(source)
+            ds = pydicom.dcmread(source)
+            ds.SoftwareVersions = "12.3.1"
+            ds.save_as(source, enforce_file_format=True)
+
+            engine_calls = []
+            direct_audit = audit_source(
+                source, ocr_engine_factory=lambda: engine_calls.append(True)
+            )
+            self.assertEqual(engine_calls, [])
+            self.assertEqual(direct_audit.pixel_frames_unchecked, 1)
+
+            result = clean_source(source, output, "remove")
+            report = result.report.read_text(encoding="utf-8")
+            self.assertEqual(result.audit.pixel_frames_total, 1)
+            self.assertEqual(result.audit.pixel_frames_checked, 0)
+            self.assertEqual(result.audit.pixel_frames_unchecked, 1)
+            self.assertEqual(result.audit.metadata_counts[0x00181020], 1)
+            self.assertIn("OCR deaktiviert", report)
+            self.assertNotIn("PATIENT 12345", report)
+            self.assertEqual(pydicom.dcmread(output).PixelData, ds.PixelData)
 
 
 if __name__ == "__main__":
