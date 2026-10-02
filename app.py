@@ -354,7 +354,9 @@ class DicomApp(tk.Tk):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--self-check":
         from audit import create_local_ocr
+        from dicomanonymizer import initialize_actions_2024b
 
+        initialize_actions_2024b()
         create_local_ocr()
         app = DicomApp()
         app.withdraw()

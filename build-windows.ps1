@@ -11,7 +11,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
 
 & .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --onedir --windowed `
     --name DicomMetadataViewerCleaner --icon assets\dicom-reader.ico `
-    --add-data 'assets\dicom-reader.png;assets' --collect-data rapidocr app.py
+    --add-data 'assets\dicom-reader.png;assets' --collect-data rapidocr `
+    --hidden-import dicomanonymizer.dicom_anonymization_databases.dicomfields_2024b app.py
 if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
 
 & .\.venv\Scripts\python.exe package_windows.py
