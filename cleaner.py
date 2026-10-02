@@ -30,6 +30,7 @@ SCHEDULED_STEP_REPLACEMENTS = {
     0x00400010: "",           # Scheduled Station Name
     0x00400011: "",           # Scheduled Procedure Step Location
 }
+DEIDENTIFICATION_METHOD = "2024b rules; scheduled step masked; pixels unchanged"
 
 
 def _clean_scheduled_step_fields(ds) -> None:
@@ -125,9 +126,20 @@ def _clean_dataset(ds, mode: str, patient_numbers: dict[tuple[str, str, str], in
         raise ValueError("SOP-Klasse in Datensatz und Dateikopf stimmt nicht überein")
     old_name = str(ds.get("PatientName", ""))
     old_id = str(ds.get("PatientID", ""))
+    pseudonym = re.fullmatch(r"Patient\^(\d{4,})", old_name)
+    known_identity = (
+        (not old_name and (not old_id or re.fullmatch(r"P\d{4,}", old_id)))
+        or (pseudonym is not None and old_id == f"P{pseudonym.group(1)}")
+    )
+    already_cleaned_here = (
+        str(ds.get("PatientIdentityRemoved", "")).upper() == "YES"
+        and str(ds.get("DeidentificationMethod", "")) == DEIDENTIFICATION_METHOD
+        and known_identity
+        and str(ds.get("PatientBirthDate", "")) in {"", "00010101"}
+    )
     original_pixels = bytes(ds.PixelData) if "PixelData" in ds else None
     linked_uids = list(_linked_uids(ds))
-    sensitive = _sensitive_tokens(ds)
+    sensitive = set() if already_cleaned_here else _sensitive_tokens(ds)
     key = _patient_key(ds)
     if key not in patient_numbers:
         patient_numbers[key] = len(patient_numbers) + 1
@@ -154,11 +166,14 @@ def _clean_dataset(ds, mode: str, patient_numbers: dict[tuple[str, str, str], in
     else:
         ds.PatientName = ""
         ds.PatientID = ""
-    if (old_name and str(ds.PatientName) == old_name) or (old_id and str(ds.PatientID) == old_id):
+    if not already_cleaned_here and (
+        (old_name and str(ds.PatientName) == old_name)
+        or (old_id and str(ds.PatientID) == old_id)
+    ):
         raise ValueError("Patientenname oder ID wurde nicht ersetzt")
 
     ds.PatientIdentityRemoved = "YES"
-    ds.DeidentificationMethod = "2024b rules; scheduled step masked; pixels unchanged"
+    ds.DeidentificationMethod = DEIDENTIFICATION_METHOD
 
     if not ds.get("SOPClassUID") or not ds.get("SOPInstanceUID"):
         raise ValueError("SOP-Klasse oder Instanz-UID fehlt nach Bereinigung")

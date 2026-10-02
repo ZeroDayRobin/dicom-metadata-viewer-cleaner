@@ -77,6 +77,8 @@ Nach dem Öffnen einer DICOM-Datei oder eines ZIPs einen Modus auswählen und **
 
 In beiden Modi werden weitere Metadaten nach den Regeln der DICOM-Version 2024b mit `dicom-anonymizer` bereinigt, private Tags entfernt und zusammengehörige UIDs konsistent neu vergeben. Der Cleaner schreibt nur neue Dateien, prüft sie durch erneutes Einlesen und erstellt einen Bericht ohne Patientenwerte. Bei ZIP-Ausgaben erhalten die DICOM-Dateien neutrale Namen; andere ZIP-Inhalte werden nicht übernommen.
 
+Eine bereits mit diesem Tool bereinigte DICOM-Datei oder ZIP-Ausgabe kann erneut als Eingabe verwendet werden. Dabei entsteht wieder eine neue Kopie mit neuen Instanz-UIDs; Original und erste bereinigte Kopie bleiben erhalten.
+
 Zusätzlich bereinigt der Reader die Felder `(0040,0001)` bis `(0040,0005)`, `(0040,0009)`, `(0040,0010)` und `(0040,0011)` auch innerhalb verschachtelter Sequenzen. Geplante Datumswerte werden `00010101`, Uhrzeiten `000000.00`; AE-Titel, Stationsname und Ort werden geleert, die Schritt-ID wird `ANONYMIZED`. Die geschriebenen Dateien werden darauf geprüft. Prozedurbeschreibungen und -codes sowie Softwareversion und Spulenname bleiben erhalten und müssen vor Weitergabe gesondert bewertet werden.
 
 **Wichtig:** Vor jedem Lauf erscheint ein Warnhinweis. Die Pixeldaten bleiben unverändert. Sichtbare Namen im Bild, erkennbare Gesichter und unerwartete Freitexte müssen vor einer Weitergabe geprüft werden. Die Ausgabe ist nicht automatisch anonym; auch pseudonymisierte Gesundheitsdaten können weiterhin personenbezogen sein. Der Prüfbericht ist keine Freigabe zur Veröffentlichung. Bei nicht verarbeitbaren Dateien wird der Lauf abgebrochen, ohne die Originale zu ändern.

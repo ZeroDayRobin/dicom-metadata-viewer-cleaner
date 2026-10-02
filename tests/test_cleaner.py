@@ -212,6 +212,71 @@ class CleanerTests(unittest.TestCase):
             clean_source(source, folder / "clean.dcm", "pseudonymize")
             self.assertNotEqual(str(pydicom.dcmread(folder / "clean.dcm").PatientID), "0001")
 
+    def test_pseudonymized_file_can_be_cleaned_again(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            source = folder / "source.dcm"
+            make_image(source, "123", generate_uid())
+            first, second = folder / "first.dcm", folder / "second.dcm"
+            clean_source(source, first, "pseudonymize")
+            clean_source(first, second, "pseudonymize")
+
+            first_ds = pydicom.dcmread(first)
+            second_ds = pydicom.dcmread(second)
+            self.assertEqual(str(second_ds.PatientName), "Patient^0001")
+            self.assertEqual(str(second_ds.PatientID), "P0001")
+            self.assertNotEqual(str(second_ds.SOPInstanceUID), str(first_ds.SOPInstanceUID))
+            self.assertEqual(bytes(second_ds.PixelData), bytes(first_ds.PixelData))
+
+    def test_unmarked_identity_matching_placeholder_is_not_silently_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            source = folder / "source.dcm"
+            make_image(source, "P0001", generate_uid())
+            ds = pydicom.dcmread(source)
+            ds.PatientName = "Patient^0001"
+            ds.save_as(source, enforce_file_format=True)
+
+            with self.assertRaisesRegex(ValueError, "Patientenname oder ID wurde nicht ersetzt"):
+                clean_source(source, folder / "clean.dcm", "pseudonymize")
+
+    def test_cleaned_zip_can_be_cleaned_again(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            image = folder / "image.dcm"
+            make_image(image, "123", generate_uid())
+            source = folder / "source.zip"
+            with zipfile.ZipFile(source, "w") as archive:
+                archive.write(image, "IMAGE001")
+
+            for mode in ("pseudonymize", "remove"):
+                with self.subTest(mode=mode):
+                    first = folder / f"first-{mode}.zip"
+                    second = folder / f"second-{mode}.zip"
+                    clean_source(source, first, mode)
+                    result = clean_source(first, second, mode)
+                    self.assertEqual(result.count, 1)
+                    with zipfile.ZipFile(second) as archive:
+                        self.assertIn("DICOMDIR", archive.namelist())
+                        name = next(name for name in archive.namelist() if name != "DICOMDIR")
+                        ds = pydicom.dcmread(BytesIO(archive.read(name)))
+                        self.assertEqual(str(ds.PatientID), "P0001")
+                        self.assertEqual(str(ds.PatientName),
+                                         "Patient^0001" if mode == "pseudonymize" else "")
+
+    def test_modified_cleanup_marker_does_not_bypass_identity_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            source, first = folder / "source.dcm", folder / "first.dcm"
+            make_image(source, "123", generate_uid())
+            clean_source(source, first, "pseudonymize")
+            ds = pydicom.dcmread(first)
+            ds.PatientID = "P9999"
+            ds.save_as(first, enforce_file_format=True)
+
+            with self.assertRaisesRegex(ValueError, "Patientenname oder ID wurde nicht ersetzt"):
+                clean_source(first, folder / "second.dcm", "pseudonymize")
+
     def test_refuses_to_overwrite_input_or_existing_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
