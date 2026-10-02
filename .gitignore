@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+.venv/
+.venv-linux/
+.venv-macos/
+vendor/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+
+# DICOM exports, reports and archives can contain health data.
+*.dcm
+*.DCM
+*.dicom
+*.DICOM
+*.ima
+*.IMA
+*.zip
+*.ZIP
+DICOMDIR
+dicomdir
+*.report.txt
